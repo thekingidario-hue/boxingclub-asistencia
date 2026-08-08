@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import time, datetime
@@ -12,7 +12,13 @@ from sqlalchemy.orm import Session
 
 DATABASE_URL = settings.DATABASE_URL
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+if DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("://", "+psycopg://", 1)
+
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -25,14 +31,14 @@ def get_db():
 
 
 def migrar_alumnos(db: Session):
-    existentes = {row[1] for row in db.execute(text("PRAGMA table_info(alumnos)")).fetchall()}
+    existentes = {col['name'] for col in inspect(db.get_bind()).get_columns('alumnos')}
     if "entrenador_id" not in existentes:
         db.execute(text("ALTER TABLE alumnos ADD COLUMN entrenador_id INTEGER REFERENCES entrenadores(id)"))
     db.commit()
 
 
 def migrar_entrenadores(db: Session):
-    existentes = {row[1] for row in db.execute(text("PRAGMA table_info(entrenadores)")).fetchall()}
+    existentes = {col['name'] for col in inspect(db.get_bind()).get_columns('entrenadores')}
     if "user_id" not in existentes:
         db.execute(text("ALTER TABLE entrenadores ADD COLUMN user_id INTEGER"))
         db.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_entrenadores_user_id ON entrenadores (user_id)"))
@@ -52,7 +58,7 @@ def migrar_entrenamientos(db: Session):
         "equipamiento": "TEXT",
         "ejercicios": "TEXT",
     }
-    existentes = {row[1] for row in db.execute(text("PRAGMA table_info(entrenamientos)")).fetchall()}
+    existentes = {col['name'] for col in inspect(db.get_bind()).get_columns('entrenamientos')}
     for columna, tipo in columnas.items():
         if columna not in existentes:
             db.execute(text(f"ALTER TABLE entrenamientos ADD COLUMN {columna} {tipo}"))
@@ -60,7 +66,7 @@ def migrar_entrenamientos(db: Session):
 
 
 def migrar_roles(db: Session):
-    db.execute(text(f'UPDATE users SET role = UPPER(role) WHERE role IN ("admin", "coach")'))
+    db.execute(text("UPDATE users SET role = UPPER(role) WHERE role IN ('admin', 'coach')"))
     db.commit()
 
 
