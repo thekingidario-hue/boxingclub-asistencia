@@ -1,5 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 from app.routes import alumnos, entrenadores, horarios, asistencia, reportes, entrenamientos, alumno_entrenamientos, users
 from app.auth import routes as auth_routes
 from app.database import Base, seed_data, migrar_entrenamientos, migrar_entrenadores, migrar_alumnos, migrar_roles
@@ -24,9 +28,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="BoxingClub Los Andes", lifespan=lifespan)
 
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS.split(",") if settings.CORS_ORIGINS else ["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
