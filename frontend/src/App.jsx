@@ -61,6 +61,8 @@ function App() {
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [nuevoTelefono, setNuevoTelefono] = useState('')
   const [nuevoEntrenadorId, setNuevoEntrenadorId] = useState('')
+  const [nuevoAlumnoError, setNuevoAlumnoError] = useState('')
+  const [creandoAlumno, setCreandoAlumno] = useState(false)
 
   const [reporteDesde, setReporteDesde] = useState('')
   const [reporteHasta, setReporteHasta] = useState('')
@@ -371,11 +373,13 @@ function App() {
   const crearAlumno = async (e) => {
     e.preventDefault()
     if (!nuevoNombre.trim()) return
+    setNuevoAlumnoError('')
     if (isAdmin() && !nuevoEntrenadorId) {
       setToast('Seleccioná un entrenador')
       setTimeout(() => setToast(''), 2500)
       return
     }
+    setCreandoAlumno(true)
     try {
       const body = { nombre_completo: nuevoNombre.trim(), telefono: nuevoTelefono.trim() || null }
       if (isAdmin()) {
@@ -396,14 +400,19 @@ function App() {
         setTimeout(() => setToast(''), 2000)
       } else {
         const err = await res.json().catch(() => ({}))
-        setToast(err.detail || 'Error al crear alumno')
+        const msg = err.detail || 'Error al crear alumno'
+        setNuevoAlumnoError(msg)
+        setToast(msg)
         setTimeout(() => setToast(''), 3000)
       }
     } catch (e) {
+      setNuevoAlumnoError('Error de conexion')
       setToast('Error al crear alumno')
       setTimeout(() => setToast(''), 3000)
-     }
-   }
+    } finally {
+      setCreandoAlumno(false)
+    }
+  }
 
    const cargarUsuarios = async () => {
      if (!isAdmin()) return
@@ -730,6 +739,10 @@ function App() {
         setTimeout(() => setToast(''), 2000)
       } else if (res.status === 403) {
         setToast('No tienes permisos para realizar esta acción.')
+        setTimeout(() => setToast(''), 3000)
+      } else {
+        const err = await res.json().catch(() => ({}))
+        setToast(err.detail || 'Error al actualizar')
         setTimeout(() => setToast(''), 3000)
       }
     } catch (e) {
@@ -1064,12 +1077,12 @@ function App() {
             </div>
           </div>
 
-           <button
-             onClick={() => setShowNuevoAlumno(true)}
-             className="fixed bottom-6 right-6 bg-boxing-red text-white w-14 h-14 rounded-full shadow-2xl text-3xl font-bold flex items-center justify-center hover:bg-red-700 transition-colors"
-           >
-             +
-           </button>
+            <button
+              onClick={() => { setShowNuevoAlumno(true); setNuevoAlumnoError('') }}
+              className="fixed bottom-6 right-6 bg-boxing-red text-white w-14 h-14 rounded-full shadow-2xl text-3xl font-bold flex items-center justify-center hover:bg-red-700 transition-colors"
+            >
+              +
+            </button>
          </div>
        )}
 
@@ -1539,12 +1552,12 @@ function App() {
           <div className="bg-boxing-gray border border-gray-700 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg">Alumnos</h3>
-              <button
-                onClick={() => setShowNuevoAlumno(true)}
-                className="bg-boxing-red text-white text-sm font-bold px-4 py-2 rounded-lg"
-              >
-                + Nuevo
-              </button>
+               <button
+                 onClick={() => { setShowNuevoAlumno(true); setNuevoAlumnoError('') }}
+                 className="bg-boxing-red text-white text-sm font-bold px-4 py-2 rounded-lg"
+               >
+                 + Nuevo
+               </button>
             </div>
             <div className="space-y-2">
               {alumnos.filter(a => a.activo).map(a => (
@@ -2124,9 +2137,12 @@ function App() {
                   </select>
                 </div>
               )}
+              {nuevoAlumnoError && (
+                <p className="text-red-400 text-xs bg-red-400/10 border border-red-400/30 rounded-lg px-3 py-2">{nuevoAlumnoError}</p>
+              )}
               <div className="flex gap-2">
-                <button type="submit" className="flex-1 bg-boxing-red py-3 rounded-lg font-bold">Guardar</button>
-                <button type="button" onClick={() => { setShowNuevoAlumno(false); setNuevoEntrenadorId('') }} className="flex-1 bg-gray-700 py-3 rounded-lg font-bold">Cancelar</button>
+                <button type="submit" disabled={creandoAlumno} className="flex-1 bg-boxing-red py-3 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed">{creandoAlumno ? 'Guardando...' : 'Guardar'}</button>
+                <button type="button" onClick={() => { setShowNuevoAlumno(false); setNuevoEntrenadorId(''); setNuevoAlumnoError('') }} className="flex-1 bg-gray-700 py-3 rounded-lg font-bold">Cancelar</button>
               </div>
             </form>
           </div>

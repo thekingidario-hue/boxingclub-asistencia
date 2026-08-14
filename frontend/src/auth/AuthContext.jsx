@@ -76,7 +76,8 @@ export function AuthProvider({ children }) {
     if (token && currentUser) {
       refreshMe()
     }
-  }, [token, currentUser, refreshMe])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, refreshMe])
 
   const value = {
     currentUser,
