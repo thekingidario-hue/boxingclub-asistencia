@@ -60,6 +60,7 @@ function App() {
   const [showNuevoAlumno, setShowNuevoAlumno] = useState(false)
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [nuevoTelefono, setNuevoTelefono] = useState('')
+  const [nuevoEntrenadorId, setNuevoEntrenadorId] = useState('')
 
   const [reporteDesde, setReporteDesde] = useState('')
   const [reporteHasta, setReporteHasta] = useState('')
@@ -371,18 +372,27 @@ function App() {
     e.preventDefault()
     if (!nuevoNombre.trim()) return
     try {
+      const body = { nombre_completo: nuevoNombre.trim(), telefono: nuevoTelefono.trim() || null }
+      if (isAdmin()) {
+        body.entrenador_id = nuevoEntrenadorId ? Number(nuevoEntrenadorId) : undefined
+      }
       const res = await apiFetch('/alumnos/', {
         method: 'POST',
-        body: JSON.stringify({ nombre_completo: nuevoNombre.trim(), telefono: nuevoTelefono.trim() || null }),
+        body: JSON.stringify(body),
       })
       if (res.ok) {
         const nuevo = await res.json()
         setAlumnos([...alumnos, nuevo])
         setNuevoNombre('')
         setNuevoTelefono('')
+        setNuevoEntrenadorId('')
         setShowNuevoAlumno(false)
         setToast('Alumno creado')
         setTimeout(() => setToast(''), 2000)
+      } else {
+        const err = await res.json().catch(() => ({}))
+        setToast(err.detail || 'Error al crear alumno')
+        setTimeout(() => setToast(''), 3000)
       }
     } catch (e) {
       setToast('Error al crear alumno')
@@ -2093,9 +2103,25 @@ function App() {
                 onChange={e => setNuevoTelefono(e.target.value)}
                 className="w-full bg-boxing-dark border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-boxing-red"
               />
+              {isAdmin() && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Entrenador *</label>
+                  <select
+                    value={nuevoEntrenadorId}
+                    onChange={e => setNuevoEntrenadorId(e.target.value)}
+                    required
+                    className="w-full bg-boxing-dark border border-gray-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-boxing-red"
+                  >
+                    <option value="">Seleccionar entrenador...</option>
+                    {entrenadores.map(e => (
+                      <option key={e.id} value={e.id}>{e.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="flex gap-2">
                 <button type="submit" className="flex-1 bg-boxing-red py-3 rounded-lg font-bold">Guardar</button>
-                <button type="button" onClick={() => setShowNuevoAlumno(false)} className="flex-1 bg-gray-700 py-3 rounded-lg font-bold">Cancelar</button>
+                <button type="button" onClick={() => { setShowNuevoAlumno(false); setNuevoEntrenadorId('') }} className="flex-1 bg-gray-700 py-3 rounded-lg font-bold">Cancelar</button>
               </div>
             </form>
           </div>
