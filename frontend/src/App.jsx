@@ -371,10 +371,15 @@ function App() {
   const crearAlumno = async (e) => {
     e.preventDefault()
     if (!nuevoNombre.trim()) return
+    if (isAdmin() && !nuevoEntrenadorId) {
+      setToast('Seleccioná un entrenador')
+      setTimeout(() => setToast(''), 2500)
+      return
+    }
     try {
       const body = { nombre_completo: nuevoNombre.trim(), telefono: nuevoTelefono.trim() || null }
       if (isAdmin()) {
-        body.entrenador_id = nuevoEntrenadorId ? Number(nuevoEntrenadorId) : undefined
+        body.entrenador_id = Number(nuevoEntrenadorId)
       }
       const res = await apiFetch('/alumnos/', {
         method: 'POST',
